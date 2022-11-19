@@ -21,3 +21,6 @@ def cli_ser():
         elif data == 'respsota_ao_convite':
             data = input()
             s.sendto(data, address)
+
+
+cli_ser()
