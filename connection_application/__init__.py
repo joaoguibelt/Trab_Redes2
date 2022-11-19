@@ -1,2 +1,1 @@
-import Client_client
-import Client_server
+import Server_module
