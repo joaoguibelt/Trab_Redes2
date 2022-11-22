@@ -50,7 +50,7 @@ def show_data():
     return users
 
 # MAIN
-host = "localhost"
+host = "192.168.1.3"
 port = 5000
 entry = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 entry.bind((host, port))
@@ -60,30 +60,27 @@ while True:
     print("Aguardando conexão")
     conn, address = entry.accept()
 
-    data = conn.recv(1024).decode()
+    data = conn.recv(1).decode()
 
     #INITIALIZE
-    if data == "connection stablished":
-        name = conn.recv(1024).decode() #name
-        ip = conn.recv(1024).decode() #ip
-        port = conn.recv(1024).decode() #port
+    if  "c" in data:
+        data = conn.recv(1024).decode()
+        aux_list = list(map(str, data.split("$")))
+        print(aux_list)
         exit = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        exit.connect((ip, int(port)))
-        register =  connect(name, ip, port)
+        exit.connect((aux_list[1], int(aux_list[2])))
+        register =  connect(aux_list[0], aux_list[1], aux_list[2])
         if register:
 
-            print(address)
-            print(address[1])
-            exit.sendto("Usuário já cadastrado anteriormente".encode(), (address[0],int(port)))
+            exit.sendto("Usuário já cadastrado anteriormente".encode(), (aux_list[1],int(aux_list[2])))
             exit.close()
             entry.close()
             entry = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             entry.bind((host, 5000))
 
         else:
-            print(address)
-            print(address[1])
-            exit.sendto("Cadastro realizado".encode(), (address[0],int(port)))
+            print("Cai no else")
+            exit.sendto("Cadastro realizado".encode(), (aux_list[1],int(aux_list[2])))
             exit.close()
             entry.close()
             entry = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -91,7 +88,7 @@ while True:
 
 
     #CONSULTAR/CONVIDAR
-    elif data == "search":
+    elif  "s" in data:
 
         ip = conn.recv(1024).decode()  # ip
         port = conn.recv(1024).decode()  # port
@@ -107,6 +104,6 @@ while True:
         entry.bind((host, 5000))
 
 
-    elif data == "show data":
+    elif data == "d":
         users = show_data()
         conn.sendto(users.encode(), address)

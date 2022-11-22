@@ -23,15 +23,13 @@ class ThreadWithReturnValue(Thread):
 
 #CONEXAO INICIAL
 def initialize(name, ip, port):
+    print("AQUIII")
     s_send = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    s_send.connect(("localhost", 5000))
-    s_send.sendto('connection stablished'.encode(), ("localhost", 5000))
-    s_send.sendto(name.encode(),  ("localhost", 5000))
-    s_send.sendto(ip.encode(),  ("localhost", 5000))
-    s_send.sendto(str(port).encode(),  ("localhost", 5000))
+    s_send.connect((ip_registro, 5000))
+    s_send.sendto('c'.encode(), (ip_registro, 5000))
+    s_send.sendto(f"{name}${ip}${port}".encode(),  (ip_registro, 5000))
     s_send.close()
-
+    print("Enviei tudo")
     s_receive = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s_receive.bind((ip, port))
     s_receive.listen()
@@ -59,12 +57,10 @@ def consultar(nome):
     global port
 
     s_send = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s_send.connect(("localhost", 5000))
+    s_send.connect((ip_registro, 5000))
 
-    s_send.sendto('search'.encode(), ("localhost", 5000))
-    s_send.sendto(ip.encode(), ("localhost", 5000))
-    s_send.sendto(str(port).encode(), ("localhost", 5000))
-    s_send.sendto(nome.encode(), ("localhost", 5000))
+    s_send.sendto('s'.encode(), (ip_registro, 5000))
+    s_send.sendto(f"{name}${ip}${port}".encode(), (ip_registro, 5000))
 
 
     s_send.close()
@@ -101,6 +97,7 @@ def convidar(nome, ip, port):
 #ESCUTAR TECLADO
 def on_press(key):
     global port
+    global  ip_host
     if key == keyboard.Key.esc:
         return False  # stop listener
     try:
@@ -111,14 +108,14 @@ def on_press(key):
         if k == 'c':
             print("Entrei aqui")
             nome_destino = input()
-            convidar(nome_destino, socket.gethostbyname("localhost"), port)
+            convidar(nome_destino, ip_host, port)
         #elif s == 's':
             #MOSTRA O BANCO DE DADOS / TABELA
         return False  # stop listener; remove this if want more keys
 
-
-name = input("Qual seu nome?") #dario
-ip = socket.gethostbyname("localhost")
+ip_registro = "192.168.1.3" # IP DO SERVER DE REGISTRO
+name = input("Qual seu nome?")
+ip_host = "192.168.1.3" #IP DA MÁQUINA
 port = int(input()) #3333
 print(ip)
 initialize(name, ip, port)
