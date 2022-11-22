@@ -1,6 +1,6 @@
 import sqlite3
 import socket
-
+from pynput import keyboard
 
 
 def connect(name, ip, port):
@@ -90,12 +90,11 @@ while True:
     #CONSULTAR/CONVIDAR
     elif  "s" in data:
 
-        ip = conn.recv(1024).decode()  # ip
-        port = conn.recv(1024).decode()  # port
-        name = conn.recv(1024).decode() #name
+        data = conn.recv(1024).decode()  # ip
+        aux_list = list(map(str, data.split("$")))
         exit = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        exit.connect((ip, int(port)))
-        infos = search(name)
+        exit.connect((aux_list[1], int(aux_list[2])))
+        infos = search(aux_list[0])
         print("INFOS? " + infos)
         exit.sendto(infos.encode(), address)
         exit.close()
