@@ -29,43 +29,36 @@ class ThreadWithReturnValue(Thread):
 
 #CONEXAO INICIAL
 def initialize(name, ip, port):
-    print("AQUIII")
     s_send = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s_send.connect((ip_registro, 5000))
     s_send.sendto('c'.encode(), (ip_registro, 5000))
     s_send.sendto(f"{name}${ip}${port}".encode(),  (ip_registro, 5000))
     s_send.close()
-    print("Enviei tudo")
     s_receive = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s_receive.bind((ip, port))
     s_receive.listen()
     conn, address = s_receive.accept()
 
     data = conn.recv(1024).decode()
-    print(data)
     s_receive.close()
 
 #LIGACAO
 def calling(host, end_point):
     print("Chamada iniciada!")
-    print(host)
-    print(end_point)
+
     threads = []
     client = Client()
     server = Server()
     client_thread = Thread(target=client.send_audio, args=[end_point[0], 6000])
-    server_thread = Thread(target=server.reproduzir, args=[host[0], 6000])
-    print("TO AQUI1")
+    #server_thread = Thread(target=server.reproduzir, args=[host[0], 6000])
+    client_thread.start()
+    server.reproduzir(host[0], 6000)
     threads.append(client_thread)
     threads.append(server_thread)
-    for i in threads:
-        i.start()
 
-    print("TO AQUI2")
-    for i in threads:
-        i.join()
 
-    print("Chamada finalizada!")
+
+
 
 #ENVIO DE CONVITE
 #Realizar consulta no banco
@@ -125,7 +118,6 @@ def on_press(key):
         k = key.name  # other keys
     if k in ['c', 's']:  # keys of interest
         if k == 'c':
-            print("Entrei aqui")
             nome_destino = input()
             convidar(nome_destino, ip_host, port)
         #elif s == 's':
@@ -165,14 +157,12 @@ def accept_reject(nome):
     else:
         return False
 
-
 ip_registro = "192.168.1.3" # IP DO SERVER DE REGISTRO
 name_host = input("Qual seu nome?")
-ip_host = "192.168.1.3" #IP DA MÁQUINA
-port = int(input()) #3333
+ip_host = input("Qual IP da sua máquina?") #IP DA MÁQUINA
+port = int(input("Qual a porta para sua aplicação escutar?")) #3333
 print(ip_host)
 initialize(name_host, ip_host, port)
-print("Bobeira")
 s_cli = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s_cli.bind((ip_host, port))
 listener = keyboard.Listener(on_press=on_press)

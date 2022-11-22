@@ -4,7 +4,6 @@ import pyaudio
 class Server:
 
     def reproduzir(self, ip, port):
-        print("Entrei no server")
 
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         CHUNK = 1024
