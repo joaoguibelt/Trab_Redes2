@@ -1,7 +1,13 @@
 from client import Client
+from server import Server
 import socket
 from threading import Thread
 from pynput import keyboard
+import tkinter as tk
+from tkinter import *
+from tkinter import messagebox as mb
+import pyaudio
+
 
 #THREAD
 class ThreadWithReturnValue(Thread):
@@ -41,33 +47,43 @@ def initialize(name, ip, port):
 
 #LIGACAO
 def calling(host, end_point):
-    try:
-        client = Client(host[0],host[1])
-        thread.start_new_thread(client.send_audio,(end_point[0],6000))
-        server = Server()
-        server.reproduzir(host[0],6000)
-    except:
-        print("Error: unable to start thread")
+    print("Chamada iniciada!")
+    print(host)
+    print(end_point)
+    threads = []
+    client = Client()
+    server = Server()
+    client_thread = Thread(target=client.send_audio, args=[end_point[0], 6000])
+    server_thread = Thread(target=server.reproduzir, args=[host[0], 6000])
+    print("TO AQUI1")
+    threads.append(client_thread)
+    threads.append(server_thread)
+    for i in threads:
+        i.start()
 
+    print("TO AQUI2")
+    for i in threads:
+        i.join()
+
+    print("Chamada finalizada!")
 
 #ENVIO DE CONVITE
 #Realizar consulta no banco
 def consultar(nome):
-    global ip
+    global ip_host
     global port
 
     s_send = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s_send.connect((ip_registro, 5000))
-
     s_send.sendto('s'.encode(), (ip_registro, 5000))
-    s_send.sendto(f"{name}${ip}${port}".encode(), (ip_registro, 5000))
+    s_send.sendto(f"{nome}${ip_host}${port}".encode(), (ip_registro, 5000))
 
 
     s_send.close()
 
 
     s_receive = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s_receive.bind((ip, port))
+    s_receive.bind((ip_host, port))
     s_receive.listen()
     conn, address = s_receive.accept()
 
@@ -81,18 +97,21 @@ def consultar(nome):
 #Convidar
 def convidar(nome, ip, port):
     aux_list = consultar(nome)
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.bind((ip, port))
-    s.sendto("convite".encode(),(aux_list[1],aux_list[2]))
-    while True:
-        data, end = s_cli.recvfrom(10000)
-        if data is not None:
-            if data.decode() == "rejeitado":
-                print("Usuário destino ocupado!")
-                s.close()
-            elif data.decode() == "aceito":
-                s.close()
-                calling((ip,port),(aux_list[1],aux_list[2]))
+    s_send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s_send.bind((ip, 7000))
+    s_send.sendto(f"convite: {name_host}".encode(),(aux_list[1],8000))
+    print(f"{nome} foi convidado com sucesso!")
+
+    data, end = s_send.recvfrom(1024)
+    if data is not None:
+        if data.decode() == "rejeitado":
+            print("Usuário destino ocupado!")
+            s_send.close()
+        elif data.decode() == "aceito":
+            s_send.close()
+            print("Chamando...")
+            calling((ip,6000),(aux_list[1],6000))
+        s_send.close()
 
 #ESCUTAR TECLADO
 def on_press(key):
@@ -113,33 +132,68 @@ def on_press(key):
             #MOSTRA O BANCO DE DADOS / TABELA
         return False  # stop listener; remove this if want more keys
 
+
+#ACEITAR/REJEITAR INVITE
+def listen_invite(ip):
+    s_receive = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s_receive.bind((ip, 8000))
+    data, end = s_receive.recvfrom(1024)
+
+    if "convite" in data.decode():
+        #MOSTRAR NA TELA A OPÇÃO
+        convite, nome = map(str, data.decode().split(": "))
+        aux_list = consultar(nome)
+        #Aceitar
+        if accept_reject(nome):
+            s_send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s_send.sendto("aceito".encode(), (aux_list[1], 7000))
+            s_send.close()
+            print("Conectando...")
+            calling((ip,6000), (aux_list[1],6000))
+        #Rejeitar
+        else:
+            s_send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s_send.sendto("rejeitado".encode(), (aux_list[1], 7000))
+            s_send.close()
+
+def accept_reject(nome):
+    res = mb.askquestion('Convite',
+                         f'{nome} te convidou para uma conversa, quer participar?')
+    var = ""
+    if res == 'yes':
+        return True
+    else:
+        return False
+
+
 ip_registro = "192.168.1.3" # IP DO SERVER DE REGISTRO
-name = input("Qual seu nome?")
+name_host = input("Qual seu nome?")
 ip_host = "192.168.1.3" #IP DA MÁQUINA
 port = int(input()) #3333
-print(ip)
-initialize(name, ip, port)
+print(ip_host)
+initialize(name_host, ip_host, port)
 print("Bobeira")
 s_cli = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s_cli.bind((ip, port+1)) #3334
+s_cli.bind((ip_host, port))
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
-while True:
+lister_invite = Thread(target=listen_invite, args=[ip_host])
+lister_invite.start()
+
+"""while True:
     print("Testando")
     data, end = s_cli.recvfrom(10000)
-    twrv = ThreadWithReturnValue(input, "O que deseja fazer?")
-    twrv.start()
-
     if data is not None:
         # RECEBIMENTO DE CONVITE
         if data.decode() == "convite":
             print("Você foi convidado!")
             res_invite = input("Deseja participar da ligação? aceito/rejeitado")
             s_cli.sendto("resposta_ao_convite".encode(), end)
-            s_cli.sendto(res_invite.encode(),end)
+            s_cli.sendto(res_invite.encode(), end)
             if res_invite == "aceito":
-                calling((ip,port),end)
+                calling((ip_host, port), end)
             else:
                 print("Convite rejeitado com sucesso!")
     else:
         print("Bobeira")
+"""
