@@ -40,6 +40,7 @@ def initialize(name, ip, port):
     conn, address = s_receive.accept()
 
     data = conn.recv(1024).decode()
+    print(data)
     s_receive.close()
 
 #LIGACAO
@@ -50,11 +51,13 @@ def calling(host, end_point):
     client = Client()
     server = Server()
     client_thread = Thread(target=client.send_audio, args=[end_point[0], 6000])
-    #server_thread = Thread(target=server.reproduzir, args=[host[0], 6000])
+    server_thread = Thread(target=server.reproduzir, args=[host[0], 6000])
     client_thread.start()
-    server.reproduzir(host[0], 6000)
+    #server.reproduzir(host[0], 6000)
     threads.append(client_thread)
     threads.append(server_thread)
+    for i in threads:
+        i.join()
 
 
 
@@ -116,13 +119,45 @@ def on_press(key):
         k = key.char  # single-char keys
     except:
         k = key.name  # other keys
-    if k in ['c', 's']:  # keys of interest
+    if k in ['c']:  # keys of interest
         if k == 'c':
-            nome_destino = input()
+            nome_destino = input("Digite o nome de quem deseja convidar:")
             convidar(nome_destino, ip_host, port)
-        #elif s == 's':
-            #MOSTRA O BANCO DE DADOS / TABELA
-        return False  # stop listener; remove this if want more keys
+        elif s == 's':
+            table()
+        return False  # stop listener
+
+#MOSTRAR DADOS
+def show_data():
+    global ip_registro
+    global ip_host
+    global port
+
+    s_send = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s_send.connect((ip_registro, 5000))
+    s_send.sendto('d'.encode(), (ip_registro, 5000))
+    s_send.sendto(f"{nome}${ip_host}${port}".encode(), (ip_registro, 5000))
+    s_send.close()
+
+
+    s_receive = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s_receive.bind((ip_host, port))
+    s_receive.listen()
+    conn, address = s_receive.accept()
+    data = conn.recv(1024).decode()
+    s_receive.close()
+    return data
+
+def table():
+    users = list(map(str, show_data().split("$")))
+    count = 0
+    for i in users:
+        if count < 2:
+            print(f"{i} | ", end="")
+        else:
+            print(f"{i}")
+            count = 0
+    print("")
 
 
 #ACEITAR/REJEITAR INVITE
@@ -157,7 +192,7 @@ def accept_reject(nome):
     else:
         return False
 
-ip_registro = "192.168.1.3" # IP DO SERVER DE REGISTRO
+ip_registro = "10.10.10.252" # IP DO SERVER DE REGISTRO
 name_host = input("Qual seu nome?")
 ip_host = input("Qual IP da sua máquina?") #IP DA MÁQUINA
 port = int(input("Qual a porta para sua aplicação escutar?")) #3333
@@ -165,6 +200,8 @@ print(ip_host)
 initialize(name_host, ip_host, port)
 s_cli = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s_cli.bind((ip_host, port))
+#table()
+print("Aperte C para enviar convite :")
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 lister_invite = Thread(target=listen_invite, args=[ip_host])

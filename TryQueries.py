@@ -4,5 +4,7 @@ cursor = banco.cursor()
 name = "Joao"
 ip = "127.0.0.1"
 port = 6789
+cursor.execute("DELETE FROM registros")
+banco.commit()
 cursor.execute("SELECT * FROM registros")
 print(cursor.fetchall())
